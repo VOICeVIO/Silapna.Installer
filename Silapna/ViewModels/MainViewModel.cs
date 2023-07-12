@@ -2,6 +2,8 @@
 using System.IO;
 using System.IO.Compression;
 using System.Threading.Tasks;
+using MsBox.Avalonia;
+using MsBox.Avalonia.Enums;
 using Silapna.Models;
 
 namespace Silapna.ViewModels;
@@ -42,9 +44,13 @@ public partial class MainViewModel : ViewModelBase
         return Directory.Exists(StoragePath);
     }
 
-    public void LoadVoices()
+    public async Task LoadVoices()
     {
+        var box = MessageBoxManager
+            .GetMessageBoxStandard("Sorry", "Cannot find VP location.",
+                ButtonEnum.Ok);
 
+        var result = await box.ShowAsync();
     }
 
     private bool CheckIsFreePack(ZipArchive archive)
