@@ -14,6 +14,7 @@
     <Title>Silapna</Title>
     <Authors>Ulysses</Authors>
     <PackageProjectUrl>https://github.com/VOICeVIO/Silapna.Installer</PackageProjectUrl>
+    <Copyright>Copyright © VOICeVIO 2023</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

@@ -37,7 +37,7 @@
         <Button Content="Build VStorage" />
         <Button Content="Delete VStorage" />
     </WrapPanel>
-    <TextBlock Name="TxtCurrent" Text="{Binding HintText}" Margin="5,10,5,10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-    <TextBlock Name="TxtInfo" Text="{Binding CurrentVoicePack.Path, FallbackValue=''}" Margin="5,10,5,10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <TextBlock Name="TxtCurrent" Text="{Binding CurrentVoicePack.Path, FallbackValue=''}" Margin="5,10,5,10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+	<TextBlock Name="TxtInfo" Text="{Binding HintText}" TextWrapping="Wrap" MaxLines="5" Margin="5,10,5,10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 </StackPanel>
 </UserControl>
