@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Silapna.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="350"
+             x:Class="Silapna.Views.MainView"
+             x:DataType="vm:MainViewModel"
+             >
+  <Design.DataContext>
+      <!-- This only sets the DataContext for the previewer in an IDE,
+         to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+    <vm:MainViewModel />
+  </Design.DataContext>
+    <UserControl.Styles>
+        <Style Selector="WrapPanel > Button">
+            <Setter Property="Margin" Value="5,5,5,5"/>
+        </Style>
+    </UserControl.Styles>
+<StackPanel>
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+        <TextBlock Text="Silapna" FontSize="25" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <TextBlock Text="by VOICeVIO" FontSize="11" Padding="1,10,1,1" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+	</StackPanel>
+	<Grid Margin="5">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="100" />
+        </Grid.ColumnDefinitions>
+        <TextBox HorizontalAlignment="Stretch" Watermark="VP Storage Path" Text="{Binding StoragePath, FallbackValue=''}" IsReadOnly="False" Margin="5"></TextBox>
+        <Button Grid.Column="1" DockPanel.Dock="Right" Content="Load Voices" />
+	</Grid>
+
+	<WrapPanel HorizontalAlignment="Center">
+		<Button Content="Repack Voice" />
+        <Button Content="Install Voice" />
+        <Button Content="Build VStorage" />
+        <Button Content="Delete VStorage" />
+    </WrapPanel>
+    <TextBlock Name="TxtCurrent" Text="{Binding HintText}" Margin="5,10,5,10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <TextBlock Name="TxtInfo" Text="{Binding CurrentVoicePack.Path, FallbackValue=''}" Margin="5,10,5,10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+</StackPanel>
+</UserControl>
