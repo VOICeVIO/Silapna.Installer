@@ -37,7 +37,7 @@
 	</Grid>
 
 	<WrapPanel HorizontalAlignment="Center">
-		<Button Content="Repack Voice" />
+		<Button Content="Repack Voice" Command="{Binding RepackCurrent}" />
         <Button Content="Install Voice" />
         <Button Content="Build VStorage" />
         <Button Content="Delete VStorage" />

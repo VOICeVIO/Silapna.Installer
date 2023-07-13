@@ -1,12 +1,14 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Enums;
+using Newtonsoft.Json;
 using Silapna.Models;
 
 namespace Silapna.ViewModels;
@@ -99,9 +101,10 @@ public partial class MainViewModel : ViewModelBase
         return hasPpkg && hasIdc && hasSylapack;
     }
 
-    private async Task<ZipArchive> ConvertToFreePack(ZipArchive archive)
+    private async Task<MemoryStream> ConvertToFreePack(ZipArchive archive)
     {
-        var newArchive = new ZipArchive(new MemoryStream(), ZipArchiveMode.Create, true);
+        var zipStream = new MemoryStream();
+        var newArchive = new ZipArchive(zipStream, ZipArchiveMode.Create, true);
         bool hasEula = false;
         foreach (var entry in archive.Entries)
         {
@@ -158,7 +161,7 @@ public partial class MainViewModel : ViewModelBase
             ms.WriteTo(stream3);
         }
 
-        return newArchive;
+        return zipStream;
     }
 
     public async Task OpenStorageDialog()
@@ -182,6 +185,148 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    public async Task RepackCurrent()
+    {
+        if (CurrentVoicePack == null || !File.Exists(CurrentVoicePack.Path))
+        {
+            var box = MessageBoxManager
+                .GetMessageBoxStandard("Repack Failed", "Cannot find vppk. Please drag vppk to this window.",
+                    ButtonEnum.Ok);
+
+            var result = await box.ShowAsync();
+            return;
+        }
+        
+        await Repack(CurrentVoicePack.Path);
+    }
+
+    public async Task InstallCurrent()
+    {
+        if (CurrentVoicePack == null || !File.Exists(CurrentVoicePack.Path))
+        {
+            var box = MessageBoxManager
+                .GetMessageBoxStandard("Install Failed", "Cannot find vppk. Please drag vppk to this window.",
+                    ButtonEnum.Ok);
+
+            var result = await box.ShowAsync();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(StoragePath) || !Directory.Exists(StoragePath))
+        {
+            var box = MessageBoxManager
+                .GetMessageBoxStandard("Install Failed", "Cannot find storage folder. Please select storage folder.",
+                    ButtonEnum.Ok);
+
+            var result = await box.ShowAsync();
+            return;
+        }
+        
+        
+    }
+
+    public async Task Install(string path, string storagePath)
+    {
+        if (!File.Exists(path))
+        {
+            HintText = "[Install] File not found";
+            return;
+        }
+
+        await using var fs = File.OpenRead(path);
+        var header = new byte[4];
+        var c = fs.Read(header);
+        if (c < 4)
+        {
+            HintText = "[Install] File is not valid";
+            return;
+        }
+            
+        bool isVppk = true;
+        if (header[0] == 'P' && header[1] == 'K')
+        {
+            fs.Seek(0, SeekOrigin.Begin);
+            isVppk = false;
+        }
+        
+        try
+        {
+            var archive = new ZipArchive(fs);
+            var ppkgName = string.Empty;
+            foreach (var entry in archive.Entries)
+            {
+                var name = entry.Name;
+                if (name.EndsWith(".ppkg"))
+                {
+                    await using var entryStream = entry.Open();
+                    using var contentMs = new MemoryStream();
+                    await entryStream.CopyToAsync(contentMs);
+                    //contentMs json deserialize
+                    var content = contentMs.ToArray();
+                    var ppkg = JsonConvert.DeserializeObject<Ppkg>(Encoding.UTF8.GetString(content));
+
+                    if (ppkg == null)
+                    {
+                        throw new FormatException($"Cannot deserialize ppkg: {name}");
+                    }
+                    
+                    var ppkgPath = Path.Combine(storagePath, $"{ppkg.prod_name}.ppkg");
+                    ppkgName = ppkgPath;
+                    if (File.Exists(ppkgPath))
+                    {
+                        File.Delete(ppkgPath);
+                    }
+                    
+                    await File.WriteAllBytesAsync(ppkgPath, content);
+                }
+                else if (name.EndsWith(".sylapack"))
+                {
+                    var sylapackPath = Path.Combine(storagePath, name);
+                    if (File.Exists(sylapackPath))
+                    {
+                        File.Delete(sylapackPath);
+                    }
+                    await using var stream = File.OpenWrite(sylapackPath);
+                    await using var entryStream = entry.Open();
+                    await entryStream.CopyToAsync(stream);
+                }
+                else if (name.EndsWith(".idc"))
+                {
+                    var idcPath = Path.Combine(storagePath, name);
+                    if (File.Exists(idcPath))
+                    {
+                        File.Delete(idcPath);
+                    }
+                    await using var stream = File.OpenWrite(idcPath);
+                    await using var entryStream = entry.Open();
+                    await entryStream.CopyToAsync(stream);
+                }
+                else if (name.EndsWith(".json"))
+                {
+                    var idcPath = Path.Combine(storagePath, name);
+                    if (File.Exists(idcPath))
+                    {
+                        File.Delete(idcPath);
+                    }
+                    await using var stream = File.OpenWrite(idcPath);
+                    await using var entryStream = entry.Open();
+                    await entryStream.CopyToAsync(stream);
+                }
+            }
+            
+            HintText = $"[Install] Saved to {ppkgName}";
+            var box = MessageBoxManager
+                .GetMessageBoxStandard("Install Success", $"Voice installed: {ppkgName}",
+                    ButtonEnum.Ok);
+
+            var result = await box.ShowAsync();
+        }
+        catch (Exception e)
+        {
+            HintText = "[Install] error: " + e.Message;
+        }
+    }
+    
     public async Task Repack(string path)
     {
         if (!File.Exists(path))
@@ -190,7 +335,7 @@ public partial class MainViewModel : ViewModelBase
             return;
         }
 
-        using var fs = File.OpenRead(path);
+        await using var fs = File.OpenRead(path);
         var header = new byte[4];
         var c = fs.Read(header);
         if (c < 4)
@@ -221,10 +366,21 @@ public partial class MainViewModel : ViewModelBase
                     HintText = $"[Repack] Saved to {newPath}";
                 }
             }
-            else
+            else //not free pack
             {
-                
+                var z = await ConvertToFreePack(archive);
+                await using var newFs = File.OpenWrite(newPath);
+                newFs.Write(_vppkHeader);
+                z.WriteTo(newFs);
+                await newFs.FlushAsync();
+                HintText = $"[Repack] Saved to {newPath}";
             }
+            
+            var box = MessageBoxManager
+                .GetMessageBoxStandard("Repack Success", $"Voice repacked: {newPath}",
+                    ButtonEnum.Ok);
+
+            var result = await box.ShowAsync();
         }
         catch (Exception e)
         {

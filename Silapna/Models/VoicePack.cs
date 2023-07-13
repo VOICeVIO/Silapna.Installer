@@ -1,4 +1,6 @@
-﻿namespace Silapna.Models
+﻿using Newtonsoft.Json;
+
+namespace Silapna.Models
 {
     public class VoicePack
     {
@@ -14,18 +16,27 @@
         public string vendor_name { get; set; }
         public EulaList[]? eula_list { get; set; }
         public NarratorList[] narrator_list { get; set; }
+        
+        [JsonConstructor]
+        public Ppkg(){}
     }
 
     public class EulaList
     {
         public string language { get; set; }
         public string url { get; set; }
+        
+        [JsonConstructor]
+        public EulaList() {}
     }
 
     public class NarratorList
     {
         public string ndc_name { get; set; }
         public int latest_version { get; set; }
+        
+        [JsonConstructor]
+        public NarratorList(){}
     }
 
 }
