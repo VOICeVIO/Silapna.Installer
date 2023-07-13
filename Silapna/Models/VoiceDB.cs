@@ -7,6 +7,8 @@ namespace Silapna.Models
     {
         public const string BasePath = "Vanarana";
         public const string Name = "voices.json";
+        public const string Env = "VOICEPEAK_EDITOR_CONFIG_HOME";
+
         public Dictionary<string, List<string>> IdcNameMap { get; set; }
 
         public async Task<bool> BuildVirtualStorage()

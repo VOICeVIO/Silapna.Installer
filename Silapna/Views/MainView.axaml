@@ -25,10 +25,15 @@
 	<Grid Margin="5">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="100" />
+            <ColumnDefinition Width="60" />
+            <!-- <ColumnDefinition Width="100" /> -->
         </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
         <TextBox HorizontalAlignment="Stretch" Watermark="VP Storage Path" Text="{Binding StoragePath, FallbackValue=''}" IsReadOnly="False" Margin="5"></TextBox>
-        <Button Grid.Column="1" DockPanel.Dock="Right" Content="Load Voices" />
+        <Button Grid.Row="0" Grid.Column="1" DockPanel.Dock="Right" Content="Open" Command="{Binding OpenStorageDialog}" />
 	</Grid>
 
 	<WrapPanel HorizontalAlignment="Center">
