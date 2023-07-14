@@ -1,12 +1,30 @@
-﻿using Newtonsoft.Json;
+﻿using System.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using Newtonsoft.Json;
 
 namespace Silapna.Models
 {
-    public class VoicePack
+    public class VoicePack : ObservableObject
     {
-        public string Path { get; set; }
+        private string? _path;
+        private Ppkg? _packageInfo;
+
+        public string? Path
+        {
+            get => _path;
+            set => SetProperty(ref _path, value);
+        }
+
         public string? ProductName => PackageInfo?.prod_name;
-        public Ppkg? PackageInfo { get; set; }
+
+        public Ppkg? PackageInfo
+        {
+            get => _packageInfo;
+            set
+            {
+                if (SetProperty(ref _packageInfo, value)) OnPropertyChanged(nameof(ProductName));
+            }
+        }
     }
 
 
