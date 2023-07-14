@@ -117,7 +117,7 @@ public partial class MainViewModel : ViewModelBase
     {
         ProgressValue = 20;
         var zipStream = new MemoryStream();
-        var newArchive = new ZipArchive(zipStream, ZipArchiveMode.Create, true, Encoding.UTF8);
+        using var newArchive = new ZipArchive(zipStream, ZipArchiveMode.Create, true, Encoding.UTF8);
         bool hasEula = false;
         var deltaPerEntry = 50.0 / archive.Entries.Count;
         foreach (var entry in archive.Entries.OrderBy(e => e.CompressedLength))
@@ -183,7 +183,6 @@ public partial class MainViewModel : ViewModelBase
             stream4.Close();
         }
         ProgressValue = 80;
-
         return zipStream;
     }
 
