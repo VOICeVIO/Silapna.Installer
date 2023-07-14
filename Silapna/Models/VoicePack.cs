@@ -32,29 +32,39 @@ namespace Silapna.Models
     {
         public string prod_name { get; set; }
         public string vendor_name { get; set; }
-        public EulaList[]? eula_list { get; set; }
-        public NarratorList[] narrator_list { get; set; }
-        
+        public Eula[]? eula_list { get; set; }
+        public Narrator[] narrator_list { get; set; }
+
         [JsonConstructor]
-        public Ppkg(){}
+        public Ppkg() { }
     }
 
-    public class EulaList
+    public class Eula
     {
         public string language { get; set; }
         public string url { get; set; }
-        
+
         [JsonConstructor]
-        public EulaList() {}
+        public Eula() { }
     }
 
-    public class NarratorList
+    public class Narrator
     {
         public string ndc_name { get; set; }
         public int latest_version { get; set; }
-        
+
         [JsonConstructor]
-        public NarratorList(){}
+        public Narrator() { }
+    }
+
+
+    public class EntranceComponent
+    {
+        public string narrator_id { get; set; }
+        public string entrance_component { get; set; }
+
+        [JsonConstructor]
+        public EntranceComponent() { }
     }
 
 }

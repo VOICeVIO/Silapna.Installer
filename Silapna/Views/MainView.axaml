@@ -19,7 +19,7 @@
     </UserControl.Styles>
 <StackPanel>
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-        <TextBlock Text="Silapna" FontSize="25" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <TextBlock Text="Silapna" FontWeight="DemiBold" FontSize="25" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         <TextBlock Tapped="LogoTapped" Text="by VOICeVIO" FontSize="11" Padding="1,10,1,1" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 	</StackPanel>
 	<Grid Margin="5">
@@ -40,7 +40,7 @@
 	<WrapPanel HorizontalAlignment="Center">
 		<Button Content="Repack Voice" Command="{Binding RepackCurrent}" />
         <Button Content="Install Voice" Command="{Binding InstallCurrent}" />
-        <Button Content="Build VStorage" />
+        <Button Content="Build VStorage" Command="{Binding BuildVStorageCommand}" />
         <Button Content="Delete VStorage" />
     </WrapPanel>
     <TextBlock Name="TxtCurrent" Text="{Binding CurrentVoicePack.Path, FallbackValue=''}" Margin="5,10,5,10" HorizontalAlignment="Center" VerticalAlignment="Center"/>

@@ -64,6 +64,8 @@ public partial class MainViewModel : ViewModelBase
         set => SetProperty(ref _storagePath, value);
     }
 
+    private VoiceDb _db = new VoiceDb();
+
     bool CanLoadVoices(object p)
     {
         return Directory.Exists(StoragePath);
@@ -92,7 +94,8 @@ public partial class MainViewModel : ViewModelBase
 
     public async Task BuildVStorageCommand()
     {
-
+        await _db.CollectVoices(StoragePath);
+        await _db.Save();
     }
 
     private bool CheckIsFreePack(ZipArchive archive)

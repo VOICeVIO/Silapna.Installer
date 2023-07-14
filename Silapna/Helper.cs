@@ -17,7 +17,7 @@ namespace Silapna
     internal static class Helper
     {
         private static WindowIcon? _icon;
-
+        
         public static void OpenUrl(string url)
         {
             try
