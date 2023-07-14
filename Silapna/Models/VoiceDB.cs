@@ -236,7 +236,7 @@ namespace Silapna.Models
                             continue;
                         }
 
-                        var narratorPath = Path.Combine(basePath, component);
+                        var narratorPath = Path.Combine(basePath, component, "storage");
                         if (!Directory.Exists(narratorPath))
                         {
                             Directory.CreateDirectory(narratorPath);
