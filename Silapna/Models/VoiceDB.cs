@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,6 +12,8 @@ namespace Silapna.Models
     {
         public Ppkg Package { get; set; }
         public string BasePath { get; set; }
+
+        public string PpkgPath { get; set; }
 
         [JsonConstructor]
         public VoiceInfo()
@@ -23,21 +26,29 @@ namespace Silapna.Models
         public Dictionary<string, string> NameMap { get; set; } = new();
         public List<VoiceInfo> Voices { get; set; } = new();
         public Dictionary<string, List<string>> NarratorComponents { get; set; } = new();
-        
+
         [JsonConstructor]
-        public VoiceDbInfo(){}
+        public VoiceDbInfo()
+        {
+        }
     }
 
     public class VoiceDb
     {
-        public const string BasePath = "Vanarana";
+        public const string BaseName = "Vanarana";
         public const string FileName = "voices.json";
         public const string VoiceMapName = "voice_map.json";
         public const string Env = "VOICEPEAK_EDITOR_CONFIG_HOME";
 
         public VoiceDbInfo Db { get; set; } = new VoiceDbInfo();
-        public string DefaultPath => Path.Combine(AppContext.BaseDirectory, BasePath, FileName);
-        public string DefaultBasePath => Path.Combine(AppContext.BaseDirectory, BasePath);
+        public readonly string StorageParentPath;
+        public string DefaultPath => Path.Combine(StorageParentPath, BaseName, FileName);
+        public string DefaultBasePath => Path.Combine(StorageParentPath, BaseName);
+
+        public VoiceDb(string storageParent)
+        { 
+            StorageParentPath = storageParent;
+        }
 
         private readonly JsonSerializerSettings _settings = new JsonSerializerSettings()
         {
@@ -61,7 +72,9 @@ namespace Silapna.Models
             var json = JsonConvert.SerializeObject(Db, _settings);
             await File.WriteAllTextAsync(path, json);
 
-            var mapPath = Path.Combine(Path.GetDirectoryName(path) ?? string.Empty, VoiceMapName);
+            var mapPath = Path.Combine(AppContext.BaseDirectory, VoiceMapName);
+            var map = Db.NameMap;
+            map["#Base"] = StorageParentPath;
             var mapJson = JsonConvert.SerializeObject(Db.NameMap, _settings);
             await File.WriteAllTextAsync(mapPath, mapJson);
         }
@@ -77,16 +90,17 @@ namespace Silapna.Models
             {
                 return;
             }
-            
+
             Db = JsonConvert.DeserializeObject<VoiceDbInfo>(await File.ReadAllTextAsync(path)) ?? new VoiceDbInfo();
         }
 
-        public async Task<List<VoiceInfo>> CollectVoices(string storagePath, bool clear = true)
+        public async Task CollectVoices(string storagePath, bool clear = true)
         {
             if (clear)
             {
                 Db = new VoiceDbInfo();
             }
+
             List<VoiceInfo> installedProducts = new();
             Dictionary<string, List<string>> entranceComponents = new();
 
@@ -117,6 +131,7 @@ namespace Silapna.Models
             {
                 entranceComponentsValue.Sort();
             }
+
             Db.NarratorComponents = entranceComponents;
 
             foreach (var ppkgFile in Directory.GetFiles(storagePath, "*.ppkg"))
@@ -126,7 +141,7 @@ namespace Silapna.Models
                     var ppkg = JsonConvert.DeserializeObject<Ppkg>(await File.ReadAllTextAsync(ppkgFile));
                     if (ppkg != null)
                     {
-                        var info = new VoiceInfo() {BasePath = storagePath, Package = ppkg};
+                        var info = new VoiceInfo() {BasePath = storagePath, Package = ppkg, PpkgPath = ppkgFile};
                         installedProducts.Add(info);
 
                         if (ppkg.narrator_list.Length == 1)
@@ -161,43 +176,116 @@ namespace Silapna.Models
 
             Db.Voices = installedProducts;
 
-            return installedProducts;
+            return;
         }
 
-        public async Task<bool> BuildVirtualStorage(string storagePath)
+        public async Task<bool> BuildVirtualStorage(string storagePath, IProgress<double>? progress = null)
         {
-            if (!Directory.Exists(storagePath))
-            { 
-                return false;
+            progress?.Report(0);
+
+            string FindPpkgPath(string narratorName)
+            {
+                foreach (var voiceInfo in Db.Voices)
+                {
+                    if (voiceInfo.Package.narrator_list.Any(narrator => narrator.ndc_name == narratorName))
+                    {
+                        return voiceInfo.PpkgPath;
+                    }
+
+                    if (voiceInfo.Package.prod_name == narratorName)
+                    {
+                        return voiceInfo.PpkgPath;
+                    }
+                }
+
+                return string.Empty;
             }
 
-            var voices = await CollectVoices(storagePath);
-            if (voices.Count == 0)
+            if (!Directory.Exists(storagePath))
             {
                 return false;
             }
 
-            var basePath = Path.Combine(AppContext.BaseDirectory, BasePath);
+            await CollectVoices(storagePath);
+            if (Db.NarratorComponents.Count == 0)
+            {
+                return false;
+            }
+
+            double currentProgress = 20;
+            progress?.Report(currentProgress);
+
+            var sylapacks = Directory.GetFiles(storagePath, "*.sylapack", SearchOption.TopDirectoryOnly);
+
+            var basePath = DefaultBasePath;
             if (!Directory.Exists(basePath))
             {
                 Directory.CreateDirectory(basePath);
             }
 
-            foreach (var voiceInfo in voices)
+            var delta = 80.0 / sylapacks.Length;
+            foreach (var kv in Db.NarratorComponents)
             {
-                foreach (var narrator in voiceInfo.Package.narrator_list)
+                var narratorName = kv.Key;
+                try
                 {
-                    var dir = Path.Combine(basePath, narrator.ndc_name);
+                    foreach (var component in kv.Value)
+                    {
+                        if (string.IsNullOrWhiteSpace(component))
+                        {
+                            continue;
+                        }
+
+                        var narratorPath = Path.Combine(basePath, component);
+                        if (!Directory.Exists(narratorPath))
+                        {
+                            Directory.CreateDirectory(narratorPath);
+                        }
+
+                        var oriIdcPath = Path.Combine(storagePath, $"{component}.idc");
+                        if (File.Exists(oriIdcPath))
+                        {
+                            File.Copy(oriIdcPath, Path.Combine(narratorPath, $"{component}.idc"), true);
+                        }
+
+                        var oriComponentPath = Path.Combine(storagePath, $"{component}.sylapack");
+                        if (File.Exists(oriComponentPath))
+                        {
+                            File.Copy(oriComponentPath, Path.Combine(narratorPath, $"{component}.sylapack"), true);
+                        }
+
+                        var oriPpkgPath = FindPpkgPath(narratorName);
+                        if (File.Exists(oriPpkgPath))
+                        {
+                            File.Copy(oriPpkgPath, Path.Combine(narratorPath, Path.GetFileName(oriPpkgPath)), true);
+                        }
+
+                        foreach (var sylapack in sylapacks)
+                        {
+                            var dstFilePath = Path.Combine(narratorPath, Path.GetFileName(sylapack));
+                            Helper.CreateHardLink(dstFilePath, sylapack, IntPtr.Zero);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine(e);
                 }
 
+                progress?.Report(currentProgress += delta);
             }
 
+            progress?.Report(100);
             return true;
         }
 
-        public async Task<bool> DeleteVirtualStorage()
+        public static void DeleteVirtualStorage(string storageParentPath)
         {
-            return true;
+            var basePath = Path.Combine(storageParentPath, BaseName);
+            if (Directory.Exists(basePath))
+            {
+                Directory.Delete(basePath, true);
+            }
         }
     }
 }

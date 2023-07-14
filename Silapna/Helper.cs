@@ -17,7 +17,11 @@ namespace Silapna
     internal static class Helper
     {
         private static WindowIcon? _icon;
-        
+
+        [DllImport("Kernel32.dll", CharSet = CharSet.Unicode)]
+        public static extern bool CreateHardLink(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes = 0);
+
+
         public static void OpenUrl(string url)
         {
             try

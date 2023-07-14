@@ -41,7 +41,7 @@
 		<Button Content="Repack Voice" Command="{Binding RepackCurrent}" />
         <Button Content="Install Voice" Command="{Binding InstallCurrent}" />
         <Button Content="Build VStorage" Command="{Binding BuildVStorageCommand}" />
-        <Button Content="Delete VStorage" />
+        <Button Content="Delete VStorage" Command="{Binding DeleteVStorageCommand}" />
     </WrapPanel>
     <TextBlock Name="TxtCurrent" Text="{Binding CurrentVoicePack.Path, FallbackValue=''}" Margin="5,10,5,10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 	<TextBlock Name="TxtInfo" Text="{Binding HintText}" TextWrapping="Wrap" MaxLines="5" Margin="5,10,5,10" HorizontalAlignment="Center" VerticalAlignment="Center"/>

@@ -49,7 +49,7 @@ public partial class MainViewModel : ViewModelBase
     public string HintText
     {
         get => _hintText;
-        set => SetProperty(ref _hintText, value);
+        set => Dispatcher.UIThread.Invoke(() => SetProperty(ref _hintText, value));
     }
 
     public string? VpPath
@@ -64,7 +64,9 @@ public partial class MainViewModel : ViewModelBase
         set => SetProperty(ref _storagePath, value);
     }
 
-    private VoiceDb _db = new VoiceDb();
+    private string? StorageBasePath => Path.GetDirectoryName(StoragePath);
+
+    private VoiceDb? _db = null;
 
     bool CanLoadVoices(object p)
     {
@@ -83,19 +85,52 @@ public partial class MainViewModel : ViewModelBase
     [DependsOn(nameof(StoragePath))]
     public bool CanDeleteVStorageCommand(object p)
     {
-        return Directory.Exists(StoragePath);
+        return Directory.Exists(StorageBasePath);
+    }
+
+    public async Task DeleteVStorageCommand()
+    {
+        await Task.Run(() =>
+        {
+            try
+            { 
+                VoiceDb.DeleteVirtualStorage(StorageBasePath!);
+                HintText = "[VStorage] Deleted.";
+            }
+            catch (Exception e)
+            {
+                HintText = "[VStorage] Delete failed: " + e.Message;
+            }
+        });
     }
 
     [DependsOn(nameof(StoragePath))]
     public bool CanBuildVStorageCommand(object p)
     {
-        return Directory.Exists(StoragePath);
+        return Directory.Exists(StorageBasePath);
     }
 
     public async Task BuildVStorageCommand()
     {
-        await _db.CollectVoices(StoragePath);
-        await _db.Save();
+        _db = new VoiceDb(StorageBasePath!);
+        await Task.Run(async () =>
+        {
+            IProgress<double> progress = new Progress<double>(d => ProgressValue = d);
+            try
+            {
+                if (await _db.BuildVirtualStorage(StoragePath!, progress))
+                {
+                    await _db.Save();
+                }
+                HintText = "[VStorage] Build OK.";
+                await Helper.ShowMessageBoxStandardIconAsDialog("VStorage", $"VStorage has been built: {Environment.NewLine}{_db.DefaultBasePath}",
+                    Window as Window);
+            }
+            catch (Exception e)
+            {
+                HintText = "[VStorage] Build failed: " + e.Message;
+            }
+        });
     }
 
     private bool CheckIsFreePack(ZipArchive archive)
@@ -464,7 +499,7 @@ public partial class MainViewModel : ViewModelBase
             HintText = $"[Install] Saved to {ppkgName}";
             ProgressValue = 100;
 
-            var result = Helper
+            var result = await Helper
                 .ShowMessageBoxStandardIconAsDialog("Install Success", $"Voice installed: {Environment.NewLine}{ppkgName}", Window as Window,
                     ButtonEnum.Ok, Icon.Success);
         }
@@ -532,7 +567,7 @@ public partial class MainViewModel : ViewModelBase
 
             ProgressValue = 100;
 
-            var result = Helper
+            var result = await Helper
                 .ShowMessageBoxStandardIconAsDialog("Repack Success", $"Voice repacked: {Environment.NewLine}{newPath}", Window as Window,
                     ButtonEnum.Ok, Icon.Success);
         }
