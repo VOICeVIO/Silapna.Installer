@@ -36,6 +36,7 @@
         <Button Grid.Row="0" Grid.Column="1" DockPanel.Dock="Right" Content="Open" Command="{Binding OpenStorageDialog}" />
 	</Grid>
 
+    <ProgressBar Height="15" Margin="10" Value="{Binding ProgressValue}"></ProgressBar>
 	<WrapPanel HorizontalAlignment="Center">
 		<Button Content="Repack Voice" Command="{Binding RepackCurrent}" />
         <Button Content="Install Voice" Command="{Binding InstallCurrent}" />

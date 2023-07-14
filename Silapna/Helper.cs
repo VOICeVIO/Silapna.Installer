@@ -2,6 +2,7 @@
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Threading;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Base;
 using MsBox.Avalonia.Dto;
@@ -9,6 +10,7 @@ using MsBox.Avalonia.Enums;
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace Silapna
 {
@@ -53,6 +55,38 @@ namespace Silapna
             WindowStartupLocation windowStartupLocation = WindowStartupLocation.CenterScreen)
         {
             return GetMessageBoxStandard(title, text, GetIcon(), @enum, icon, windowStartupLocation);
+        }
+
+        public static async Task<ButtonResult> ShowMessageBoxStandardIcon(
+            string title,
+            string text,
+            ButtonEnum @enum = ButtonEnum.Ok,
+            Icon icon = Icon.None,
+            WindowStartupLocation windowStartupLocation = WindowStartupLocation.CenterScreen)
+        {
+            
+            var r = await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                var box = GetMessageBoxStandard(title, text, GetIcon(), @enum, icon, windowStartupLocation);
+                return await box.ShowAsync();
+            });
+            return r;
+        }
+
+        public static async Task<ButtonResult> ShowMessageBoxStandardIconAsDialog(
+            string title,
+            string text,
+            Window? window,
+            ButtonEnum @enum = ButtonEnum.Ok,
+            Icon icon = Icon.None,
+            WindowStartupLocation windowStartupLocation = WindowStartupLocation.CenterScreen)
+        {
+            var r = await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                var box = GetMessageBoxStandard(title, text, GetIcon(), @enum, icon, windowStartupLocation);
+                return await box.ShowWindowDialogAsync(window);
+            });
+            return r;
         }
 
         public static IMsBox<ButtonResult> GetMessageBoxStandard(

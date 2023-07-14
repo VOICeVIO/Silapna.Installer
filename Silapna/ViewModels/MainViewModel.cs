@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -7,6 +8,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Metadata;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Enums;
@@ -29,7 +31,15 @@ public partial class MainViewModel : ViewModelBase
                                              Silapna is a free tool made by VOICeVIO, wdwxy12345@gmail.com
                                              """;
 
+    private double _progressValue = 0;
+
     public TopLevel? Window { get; set; }
+
+    public double ProgressValue
+    {
+        get => _progressValue;
+        set => Dispatcher.UIThread.Invoke(() => SetProperty(ref _progressValue, value));
+    }
 
     public VoicePack? CurrentVoicePack
     {
@@ -105,10 +115,12 @@ public partial class MainViewModel : ViewModelBase
 
     private async Task<MemoryStream> ConvertToFreePack(ZipArchive archive)
     {
+        ProgressValue = 20;
         var zipStream = new MemoryStream();
-        var newArchive = new ZipArchive(zipStream, ZipArchiveMode.Create, true);
+        var newArchive = new ZipArchive(zipStream, ZipArchiveMode.Create, true, Encoding.UTF8);
         bool hasEula = false;
-        foreach (var entry in archive.Entries)
+        var deltaPerEntry = 50.0 / archive.Entries.Count;
+        foreach (var entry in archive.Entries.OrderBy(e => e.CompressedLength))
         {
             var n = entry.FullName;
             if (n.EndsWith(".ppkg"))
@@ -140,35 +152,37 @@ public partial class MainViewModel : ViewModelBase
                 await entryStream.CopyToAsync(stream);
                 hasEula = true;
             }
-            else if (entry.Name.EndsWith(".json") || entry.Name.EndsWith(".txt"))
+            else if (entry.Name.EndsWith(".txt")) //entry.Name.EndsWith(".json")
             { 
                 var newEntry = newArchive.CreateEntry(entry.Name);
                 await using var stream = newEntry.Open();
                 await using var entryStream = entry.Open();
                 await entryStream.CopyToAsync(stream);
             }
+            ProgressValue += deltaPerEntry;
         }
 
         if (!hasEula)
         {
             using var ms = new MemoryStream(Encoding.UTF8.GetBytes(_defaultEulaEn));
-            var newEntry = newArchive.CreateEntry("eula_en.txt");
+            var newEntry = newArchive.CreateEntry("eula_en.txt", CompressionLevel.NoCompression);
             await using var stream = newEntry.Open();
             ms.WriteTo(stream);
             stream.Close();
-            newEntry = newArchive.CreateEntry("eula_jp.txt");
+            newEntry = newArchive.CreateEntry("eula_jp.txt", CompressionLevel.NoCompression);
             await using var stream2 = newEntry.Open();
             ms.WriteTo(stream2);
             stream2.Close();
-            newEntry = newArchive.CreateEntry("eula_cn.txt");
+            newEntry = newArchive.CreateEntry("eula_cn.txt", CompressionLevel.NoCompression);
             await using var stream3 = newEntry.Open();
             ms.WriteTo(stream3);
             stream3.Close();
-            newEntry = newArchive.CreateEntry("eula_zh.txt");
+            newEntry = newArchive.CreateEntry("eula_zh.txt", CompressionLevel.NoCompression);
             await using var stream4 = newEntry.Open();
             ms.WriteTo(stream4);
             stream4.Close();
         }
+        ProgressValue = 80;
 
         return zipStream;
     }
@@ -205,8 +219,9 @@ public partial class MainViewModel : ViewModelBase
             var result = await box.ShowAsync();
             return;
         }
-        
-        await Repack(CurrentVoicePack.Path);
+
+        await Task.Run((async () => await Repack(CurrentVoicePack.Path)));
+        //await Repack(CurrentVoicePack.Path).ConfigureAwait(false);
     }
 
     [DependsOn(nameof(CurrentVoicePack))]
@@ -245,11 +260,14 @@ public partial class MainViewModel : ViewModelBase
             return;
         }
 
-        await Install(CurrentVoicePack.Path, StoragePath);
+        await Task.Run((async () => await Install(CurrentVoicePack.Path, StoragePath)));
+        //await Install(CurrentVoicePack.Path, StoragePath);
     }
 
     public async Task Install(string path, string storagePath)
     {
+        ProgressValue = 0;
+
         async Task<bool> CopyFile(string dstPath, ZipArchiveEntry? entry)
         {
             if (entry == null)
@@ -275,10 +293,35 @@ public partial class MainViewModel : ViewModelBase
 
             return true;
         }
+
+        async Task<Ppkg?> ReadPpkg(ZipArchiveEntry entry)
+        {
+            try
+            {
+                await using var entryStream = entry.Open();
+                using var contentMs = new MemoryStream();
+                await entryStream.CopyToAsync(contentMs);
+                //contentMs json deserialize
+                var content = contentMs.ToArray();
+                var ppkg = JsonConvert.DeserializeObject<Ppkg>(Encoding.UTF8.GetString(content));
+                return ppkg;
+            }
+            catch (Exception e)
+            {
+            }
+
+            return null;
+        }
             
         if (!File.Exists(path))
         {
             HintText = "[Install] File not found";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(StoragePath) || !Directory.Exists(StoragePath))
+        {
+            HintText = "[Install] storage path not found";
             return;
         }
 
@@ -297,13 +340,41 @@ public partial class MainViewModel : ViewModelBase
             fs.Seek(0, SeekOrigin.Begin);
             isVppk = false;
         }
-        
+
+        List<string> installedProducts = new List<string>();
+        foreach (var ppkgFile in Directory.GetFiles(StoragePath, "*.ppkg"))
+        {
+            try
+            {
+                var ppkg = JsonConvert.DeserializeObject<Ppkg>(await File.ReadAllTextAsync(ppkgFile));
+                if(ppkg != null)
+                    installedProducts.Add(ppkg.prod_name);
+            }
+            catch
+            {
+                //ignored
+            }
+        }
+
         try
         {
             using var mms = new MemoryStream((int)fs.Length);
             await fs.CopyToAsync(mms);
+            ProgressValue = 10;
             var archive = new ZipArchive(mms, ZipArchiveMode.Read);
+
+            //find all ppkg file in archive
+            foreach (var ppkgEntry in archive.Entries.Where(e => e.Name.ToLowerInvariant().EndsWith(".ppkg")))
+            {
+                var p = await ReadPpkg(ppkgEntry);
+                if (p != null && installedProducts.Contains(p.prod_name))
+                {
+                    throw new Exception($"Voice {p.prod_name} already installed");
+                }
+            }
+
             var ppkgName = string.Empty;
+            var deltaPerEntry = 90.0 / archive.Entries.Count;
             foreach (var entry in archive.Entries)
             {
                 var name = entry.Name;
@@ -368,23 +439,28 @@ public partial class MainViewModel : ViewModelBase
                         throw new IOException($"Failed to install {filePath}");
                     }
                 }
+
+                ProgressValue += deltaPerEntry;
             }
             
             HintText = $"[Install] Saved to {ppkgName}";
-            var box = Helper
-                .GetMessageBoxStandardIcon("Install Success", $"Voice installed: {Environment.NewLine}{ppkgName}",
-                    ButtonEnum.Ok, Icon.Success);
+            ProgressValue = 100;
 
-            var result = await box.ShowAsync();
+            var result = Helper
+                .ShowMessageBoxStandardIconAsDialog("Install Success", $"Voice installed: {Environment.NewLine}{ppkgName}", Window as Window,
+                    ButtonEnum.Ok, Icon.Success);
         }
         catch (Exception e)
         {
             HintText = "[Install] error: " + e.Message;
+            ProgressValue = 0;
         }
     }
     
     public async Task Repack(string path)
     {
+        ProgressValue = 0;
+
         if (!File.Exists(path))
         {
             HintText = "[Repack] File not found";
@@ -412,6 +488,7 @@ public partial class MainViewModel : ViewModelBase
         {
             using var mms = new MemoryStream((int)fs.Length);
             await fs.CopyToAsync(mms);
+            ProgressValue = 10;
             var archive = new ZipArchive(mms, ZipArchiveMode.Read);
             if (CheckIsFreePack(archive))
             {
@@ -431,18 +508,20 @@ public partial class MainViewModel : ViewModelBase
                 newFs.Write(_vppkHeader);
                 z.WriteTo(newFs);
                 await newFs.FlushAsync();
+                z.Close();
                 HintText = $"[Repack] Saved to {newPath}";
             }
-            
-            var box = Helper
-                .GetMessageBoxStandardIcon("Repack Success", $"Voice repacked: {Environment.NewLine}{newPath}",
+
+            ProgressValue = 100;
+
+            var result = Helper
+                .ShowMessageBoxStandardIconAsDialog("Repack Success", $"Voice repacked: {Environment.NewLine}{newPath}", Window as Window,
                     ButtonEnum.Ok, Icon.Success);
-            
-            var result = await box.ShowWindowDialogAsync(Window as Window);
         }
         catch (Exception e)
         {
             HintText = "[Repack] error: " + e.Message;
+            ProgressValue = 0;
         }
 
     }
