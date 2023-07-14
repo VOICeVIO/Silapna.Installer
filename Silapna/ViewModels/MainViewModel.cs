@@ -10,7 +10,6 @@ using Avalonia.Metadata;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using MsBox.Avalonia;
-using MsBox.Avalonia.Dto;
 using MsBox.Avalonia.Enums;
 using Newtonsoft.Json;
 using Silapna.Models;
@@ -77,6 +76,23 @@ public partial class MainViewModel : ViewModelBase
                 ButtonEnum.Ok, Icon.Error);
 
         var result = await box.ShowAsync();
+    }
+
+    [DependsOn(nameof(StoragePath))]
+    public bool CanDeleteVStorageCommand(object p)
+    {
+        return Directory.Exists(StoragePath);
+    }
+
+    [DependsOn(nameof(StoragePath))]
+    public bool CanBuildVStorageCommand(object p)
+    {
+        return Directory.Exists(StoragePath);
+    }
+
+    public async Task BuildVStorageCommand()
+    {
+
     }
 
     private bool CheckIsFreePack(ZipArchive archive)
