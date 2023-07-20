@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33815.320
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Silapna", "Silapna.csproj", "{6EC3C50A-50DA-4959-BEA1-24BE7AE9F30E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Silapna", "Silapna\Silapna.csproj", "{6EC3C50A-50DA-4959-BEA1-24BE7AE9F30E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Silapna.Desktop", "..\Silapna.Desktop\Silapna.Desktop.csproj", "{66AF8A80-0653-47DA-ABB0-9E0C18D9BA4C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Silapna.Desktop", "Silapna.Desktop\Silapna.Desktop.csproj", "{66AF8A80-0653-47DA-ABB0-9E0C18D9BA4C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决方案项", "{DC20CF2D-7D2F-482B-899D-55EF88240ABD}"
 	ProjectSection(SolutionItems) = preProject
-		..\readme.md = ..\readme.md
+		readme.md = readme.md
 	EndProjectSection
 EndProject
 Global
