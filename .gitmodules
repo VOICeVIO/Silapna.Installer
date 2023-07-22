@@ -1,0 +1,4 @@
+[submodule "MessageBox.Avalonia"]
+	path = MessageBox.Avalonia
+	url = https://github.com/MonarchSolutions/MessageBox.Avalonia.git
+	branch = master
