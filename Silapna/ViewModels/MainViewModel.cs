@@ -4,6 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Metadata;
@@ -11,7 +12,6 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Enums;
-using Newtonsoft.Json;
 using Silapna.Models;
 
 namespace Silapna.ViewModels;
@@ -356,7 +356,7 @@ public partial class MainViewModel : ViewModelBase
                 await entryStream.CopyToAsync(contentMs);
                 //contentMs json deserialize
                 var content = contentMs.ToArray();
-                var ppkg = JsonConvert.DeserializeObject<Ppkg>(Encoding.UTF8.GetString(content));
+                var ppkg = JsonSerializer.Deserialize<Ppkg>(Encoding.UTF8.GetString(content));
                 return ppkg;
             }
             catch (Exception e)
@@ -399,7 +399,7 @@ public partial class MainViewModel : ViewModelBase
         {
             try
             {
-                var ppkg = JsonConvert.DeserializeObject<Ppkg>(await File.ReadAllTextAsync(ppkgFile));
+                var ppkg = JsonSerializer.Deserialize<Ppkg>(await File.ReadAllTextAsync(ppkgFile));
                 if(ppkg != null)
                     installedProducts.Add(ppkg.prod_name);
             }
@@ -438,7 +438,7 @@ public partial class MainViewModel : ViewModelBase
                     await entryStream.CopyToAsync(contentMs);
                     //contentMs json deserialize
                     var content = contentMs.ToArray();
-                    var ppkg = JsonConvert.DeserializeObject<Ppkg>(Encoding.UTF8.GetString(content));
+                    var ppkg = JsonSerializer.Deserialize<Ppkg>(Encoding.UTF8.GetString(content));
 
                     if (ppkg == null)
                     {

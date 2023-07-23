@@ -1,6 +1,6 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.Text.Json.Serialization;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Newtonsoft.Json;
 
 namespace Silapna.Models
 {
@@ -27,7 +27,7 @@ namespace Silapna.Models
         }
     }
 
-
+    [Serializable]
     public class Ppkg
     {
         public string prod_name { get; set; }
@@ -39,6 +39,7 @@ namespace Silapna.Models
         public Ppkg() { }
     }
 
+    [Serializable]
     public class Eula
     {
         public string language { get; set; }
@@ -48,6 +49,7 @@ namespace Silapna.Models
         public Eula() { }
     }
 
+    [Serializable]
     public class Narrator
     {
         public string ndc_name { get; set; }
@@ -57,7 +59,7 @@ namespace Silapna.Models
         public Narrator() { }
     }
 
-
+    [Serializable]
     public class EntranceComponent
     {
         public string narrator_id { get; set; }

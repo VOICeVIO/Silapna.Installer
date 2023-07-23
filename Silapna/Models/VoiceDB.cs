@@ -1,9 +1,11 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Unicode;
 using System.Threading.Tasks;
 
 namespace Silapna.Models
@@ -52,10 +54,13 @@ namespace Silapna.Models
             StorageParentPath = storageParent;
         }
 
-        private readonly JsonSerializerSettings _settings = new JsonSerializerSettings()
+        private readonly JsonSerializerOptions _settings = new JsonSerializerOptions()
         {
-            NullValueHandling = NullValueHandling.Include,
-            Formatting = Formatting.Indented
+            Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            AllowTrailingCommas = true,
         };
 
         public async Task Save(string? path = null)
@@ -71,19 +76,21 @@ namespace Silapna.Models
                 }
             }
 
-            var json = JsonConvert.SerializeObject(Db, _settings);
+            var json = JsonSerializer.Serialize(Db, _settings);
             await File.WriteAllTextAsync(path, json);
 
             var mapPath = Path.Combine(AppContext.BaseDirectory, VoiceMapName);
             var map = Db.NameMap;
             map["#Base"] = StorageParentPath;
-            var mapJson = JsonConvert.SerializeObject(Db.NameMap, _settings);
+            var mapJson = JsonSerializer.Serialize(Db.NameMap, _settings);
             await File.WriteAllTextAsync(mapPath, mapJson);
+            bool write = false; 
             if (Directory.Exists(VpDefaultPathC))
             {
                 try
                 {
                     await File.WriteAllTextAsync(Path.Combine(VpDefaultPathC, VoiceMapName), mapJson);
+                    write = true;
                 }
                 catch
                 {
@@ -95,6 +102,7 @@ namespace Silapna.Models
                 try
                 {
                     await File.WriteAllTextAsync(Path.Combine(VpDefaultPathD, VoiceMapName), mapJson);
+                    write = true;
                 }
                 catch
                 {
@@ -115,7 +123,7 @@ namespace Silapna.Models
                 return;
             }
 
-            Db = JsonConvert.DeserializeObject<VoiceDbInfo>(await File.ReadAllTextAsync(path)) ?? new VoiceDbInfo();
+            Db = JsonSerializer.Deserialize<VoiceDbInfo>(await File.ReadAllTextAsync(path)) ?? new VoiceDbInfo();
         }
 
         public async Task CollectVoices(string storagePath, bool clear = true)
@@ -132,7 +140,7 @@ namespace Silapna.Models
             {
                 try
                 {
-                    var idc = JsonConvert.DeserializeObject<EntranceComponent>(await File.ReadAllTextAsync(idcFile));
+                    var idc = JsonSerializer.Deserialize<EntranceComponent>(await File.ReadAllTextAsync(idcFile));
                     if (idc != null)
                     {
                         if (entranceComponents.ContainsKey(idc.narrator_id))
@@ -162,7 +170,7 @@ namespace Silapna.Models
             {
                 try
                 {
-                    var ppkg = JsonConvert.DeserializeObject<Ppkg>(await File.ReadAllTextAsync(ppkgFile));
+                    var ppkg = JsonSerializer.Deserialize<Ppkg>(await File.ReadAllTextAsync(ppkgFile));
                     if (ppkg != null)
                     {
                         var info = new VoiceInfo() {BasePath = storagePath, Package = ppkg, PpkgPath = ppkgFile};
@@ -293,7 +301,7 @@ namespace Silapna.Models
                 }
                 catch (Exception e)
                 {
-                    Debug.WriteLine(e);
+                    File.AppendAllText("error.txt", e.ToString() + "\r\n");
                 }
 
                 progress?.Report(currentProgress += delta);

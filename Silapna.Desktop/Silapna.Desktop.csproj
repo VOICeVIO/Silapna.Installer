@@ -16,12 +16,15 @@
     <PackageProjectUrl>https://github.com/VOICeVIO/Silapna.Installer</PackageProjectUrl>
     <Copyright>Copyright © VOICeVIO 2023</Copyright>
   </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+	</PropertyGroup>
 
-  <ItemGroup>
+	<ItemGroup>
     <PackageReference Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Silapna\Silapna.csproj" />
+    <TrimmerRootAssembly Include="Silapna" />
   </ItemGroup>
 </Project>
