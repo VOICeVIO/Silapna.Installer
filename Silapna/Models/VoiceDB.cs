@@ -39,6 +39,8 @@ namespace Silapna.Models
         public const string FileName = "voices.json";
         public const string VoiceMapName = "voice_map.json";
         public const string Env = "VOICEPEAK_EDITOR_CONFIG_HOME";
+        private const string VpDefaultPathC = "C:\\Program Files\\Voicepeak";
+        private const string VpDefaultPathD = "D:\\Program Files\\Voicepeak";
 
         public VoiceDbInfo Db { get; set; } = new VoiceDbInfo();
         public readonly string StorageParentPath;
@@ -77,6 +79,28 @@ namespace Silapna.Models
             map["#Base"] = StorageParentPath;
             var mapJson = JsonConvert.SerializeObject(Db.NameMap, _settings);
             await File.WriteAllTextAsync(mapPath, mapJson);
+            if (Directory.Exists(VpDefaultPathC))
+            {
+                try
+                {
+                    await File.WriteAllTextAsync(Path.Combine(VpDefaultPathC, VoiceMapName), mapJson);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+            if (Directory.Exists(VpDefaultPathD))
+            {
+                try
+                {
+                    await File.WriteAllTextAsync(Path.Combine(VpDefaultPathD, VoiceMapName), mapJson);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
         }
 
         public async Task Load(string? path = null)

@@ -9,6 +9,8 @@
         x:Class="Silapna.Views.MainWindow"
         Icon="/Assets/VP.ico"
         Title="Silapna"
+        MinHeight="250"
+        MinWidth="500"
         >
     <views:MainView HorizontalAlignment="Stretch" VerticalAlignment="Stretch" DataContext="{Binding $parent[views:MainWindow].DataContext}" />
 </Window>

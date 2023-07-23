@@ -76,7 +76,11 @@ public partial class MainView : UserControl
     {
         base.OnLoaded(e);
 
-        var vm = (DataContext as MainViewModel)!;
+        var vm = (DataContext as MainViewModel);
+        if (vm == null)
+        {
+            return;
+        }
         vm.Window = TopLevel.GetTopLevel(this);
         var vpPath1 = Path.Combine(AppContext.BaseDirectory, VP_EXE);
         if (File.Exists(vpPath1))
