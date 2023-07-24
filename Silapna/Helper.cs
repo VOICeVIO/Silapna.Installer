@@ -83,7 +83,7 @@ namespace Silapna
             Window? window,
             ButtonEnum @enum = ButtonEnum.Ok,
             Icon icon = Icon.None,
-            WindowStartupLocation windowStartupLocation = WindowStartupLocation.CenterScreen)
+            WindowStartupLocation windowStartupLocation = WindowStartupLocation.CenterOwner)
         {
             var r = await Dispatcher.UIThread.InvokeAsync(async () =>
             {
